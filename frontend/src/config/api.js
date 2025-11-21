@@ -1,2 +1,1 @@
-export const API_URL = "http://localhost:5000/api";
-// change later to production URL when deployed
+export const API_URL = `${import.meta.env.VITE_API_URL}/api`;

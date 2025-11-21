@@ -15,57 +15,65 @@ connectDB();
 
 const app = express();
 
-// ---------- CORS POLICY ----------
+// --------------------- CORS ---------------------
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://study-mantra-frontend.vercel.app" // production domain - replace when deploying
+  "http://127.0.0.1:5173",
+
+  // your deployed frontend
+  "https://study-mantra-frontend.vercel.app",
 ];
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow non-browser requests (like curl) where origin may be undefined
+    origin: function (origin, callback) {
       if (!origin) return callback(null, true);
 
-      // Allow any localhost port in development
-      if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
 
-      // Allow specific production origins
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-
-      return callback(new Error("Not allowed by CORS"));
+      return callback(new Error("CORS blocked: " + origin));
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 
-// ---------- BASIC RATE LIMIT ----------
-const limiter = rateLimit({ windowMs: 60 * 1000, max: 100 });
+// --------------------- RATE LIMIT ---------------------
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+});
 app.use(limiter);
 
-// ---------- MIDDLEWARE ----------
+// --------------------- BODY PARSER ---------------------
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve local uploads when USE_CLOUDINARY is false
+// --------------------- STATIC FILES ---------------------
 const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  try { fs.mkdirSync(uploadsDir); } catch (_) {}
-}
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
 app.use("/uploads", express.static(uploadsDir));
 
-// ---------- ROUTES ----------
+// --------------------- ROUTES ---------------------
 app.use("/api/auth", authRoutes);
 app.use("/api/docs", docRoutes);
 app.use("/api/ai", aiRoutes);
 
-// ---------- DEFAULT ----------
+// --------------------- DEFAULT ---------------------
 app.get("/", (req, res) => {
-  res.send("Backend is running...");
+  res.send("Backend running ✔");
 });
 
-// ---------- START SERVER ----------
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// --------------------- EXPORT FOR VERCEL ---------------------
+export default app;
+
+// --------------------- LOCAL RUN ONLY ---------------------
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () =>
+    console.log(`Local server running → http://localhost:${PORT}`)
+  );
+}

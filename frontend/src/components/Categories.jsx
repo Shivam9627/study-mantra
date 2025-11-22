@@ -1,5 +1,6 @@
 import React from "react";
 import { motion as Motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 
 import notes from "../assets/notes.jpeg";
@@ -43,22 +44,23 @@ export default function Categories() {
   }`}
 >
   {items.map((c, i) => (
-    <Motion.a
+    <Motion.div
       key={i}
       whileHover={{ scale: 1.05 }}
-      href={c.link}
       className="bg-white shadow-lg rounded-xl overflow-hidden"
     >
-      <img 
-        src={c.img} 
-        loading="lazy"
-        decoding="async"
-        className="w-full h-56 object-cover"
-      />
-      <div className="p-6 font-semibold">        {/* ⬅️ more padding */}
-        {c.title}
-      </div>
-    </Motion.a>
+      <Link to={c.link} className="block">
+        <img 
+          src={c.img} 
+          loading="lazy"
+          decoding="async"
+          className="w-full h-56 object-cover"
+        />
+        <div className="p-6 font-semibold">
+          {c.title}
+        </div>
+      </Link>
+    </Motion.div>
   ))}
 </div>
 

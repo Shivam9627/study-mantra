@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { motion as Motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import hero from "../assets/hero.jpeg";
 
 export default function Hero() {
@@ -52,26 +53,26 @@ export default function Hero() {
         </Motion.p>
 
         <div className="mt-7 flex flex-wrap justify-center items-center gap-3">
-          <Motion.a
-            href="/notes"
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
             whileHover={{ scale: 1.07 }}
-            className="px-7 py-3.5 bg-indigo-600 text-white text-lg rounded-xl shadow-xl hover:bg-indigo-700"
           >
-            Explore Notes
-          </Motion.a>
-          <Motion.a
-            href="/chat"
+            <Link to="/notes" className="px-7 py-3.5 bg-indigo-600 text-white text-lg rounded-xl shadow-xl hover:bg-indigo-700">
+              Explore Notes
+            </Link>
+          </Motion.div>
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
             whileHover={{ scale: 1.07 }}
-            className="px-7 py-3.5 bg-teal-500 text-white text-lg rounded-xl shadow-xl hover:bg-teal-600"
           >
-            Ask AI Chat
-          </Motion.a>
+            <Link to="/chat" className="px-7 py-3.5 bg-teal-500 text-white text-lg rounded-xl shadow-xl hover:bg-teal-600">
+              Ask AI Chat
+            </Link>
+          </Motion.div>
         </div>
       </div>
     </section>

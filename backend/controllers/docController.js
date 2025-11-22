@@ -9,11 +9,12 @@ if (process.env.USE_CLOUDINARY === "true") {
 }
 
 /* -------------------------------------------------------
-   📌 UPLOAD DOCUMENT
+   📌 UPLOAD DOCUMENT (VERCEL SAFE)
 --------------------------------------------------------*/
 export const uploadDocument = async (req, res) => {
   try {
     const file = req.file;
+
     const {
       title,
       description,
@@ -28,15 +29,22 @@ export const uploadDocument = async (req, res) => {
 
     if (!file) return res.status(400).json({ message: "File is required" });
 
-    // Fallback title if not provided from UI
-    const baseName = file.originalname ? file.originalname.replace(/\.[^/.]+$/, "") : "Untitled";
-    const effectiveTitle = title && title.trim() ? title.trim() : (subject && subject.trim() ? subject.trim() : baseName);
+    const baseName = file.originalname
+      ? file.originalname.replace(/\.[^/.]+$/, "")
+      : "Untitled";
+
+    const effectiveTitle =
+      title && title.trim()
+        ? title.trim()
+        : subject && subject.trim()
+        ? subject.trim()
+        : baseName;
 
     let fileUrl = "";
     let filePublicId = "";
 
-    // Cloudinary upload
-    if (process.env.USE_CLOUDINARY === "true") {
+    /* ---------------- CLOUDINARY UPLOAD ---------------- */
+    if (process.env.USE_CLOUDINARY === "true" || process.env.VERCEL) {
       await new Promise((resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
@@ -50,25 +58,33 @@ export const uploadDocument = async (req, res) => {
           )
           .end(file.buffer);
       });
-    } 
-    // Local upload
+    }
+
+    /* ---------------- LOCAL UPLOAD (DEV ONLY) ---------------- */
     else {
       const uploadsDir = path.join(process.cwd(), "uploads");
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
+      // Only create this on localhost; Vercel will fail
+      if (!process.env.VERCEL) {
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+      }
 
       const filename = `${Date.now()}-${file.originalname}`;
       const filepath = path.join(uploadsDir, filename);
 
-      fs.writeFileSync(filepath, file.buffer);
+      if (!process.env.VERCEL) {
+        fs.writeFileSync(filepath, file.buffer);
+      }
 
-      // Use absolute URL so frontend from different origin can access
       const host = req.get("host");
       const protocol = req.protocol;
       fileUrl = `${protocol}://${host}/uploads/${filename}`;
     }
 
     if (type === "paper" && (!session || !String(session).includes("-"))) {
-      return res.status(400).json({ message: "Session is required for papers (e.g., 2022-2023)" });
+      return res.status(400).json({
+        message: "Session is required for papers (e.g., 2022-2023)",
+      });
     }
 
     const newDoc = new Document({
@@ -91,8 +107,8 @@ export const uploadDocument = async (req, res) => {
     });
 
     await newDoc.save();
-    res.json({ message: "Document uploaded successfully", document: newDoc });
 
+    res.json({ message: "Document uploaded successfully", document: newDoc });
   } catch (err) {
     console.error("Upload Error:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
@@ -104,7 +120,8 @@ export const uploadDocument = async (req, res) => {
 --------------------------------------------------------*/
 export const getAllDocuments = async (req, res) => {
   try {
-    const { type, course, college, subject, semester, year, session } = req.query;
+    const { type, course, college, subject, semester, year, session } =
+      req.query;
 
     const filter = {};
 
@@ -117,8 +134,8 @@ export const getAllDocuments = async (req, res) => {
     if (session) filter.session = session;
 
     const docs = await Document.find(filter).sort({ createdAt: -1 });
-    res.json(docs);
 
+    res.json(docs);
   } catch (err) {
     console.error("Fetch Error:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
@@ -126,12 +143,13 @@ export const getAllDocuments = async (req, res) => {
 };
 
 /* -------------------------------------------------------
-   📌 GET USER-SPECIFIC DOCUMENTS
+   📌 GET DOCUMENTS BY USER
 --------------------------------------------------------*/
 export const getDocumentsByUser = async (req, res) => {
   try {
-    const docs = await Document.find({ "contributor.id": req.user.id })
-      .sort({ createdAt: -1 });
+    const docs = await Document.find({ "contributor.id": req.user.id }).sort({
+      createdAt: -1,
+    });
 
     res.json(docs);
   } catch (err) {
@@ -185,7 +203,6 @@ export const rateDocument = async (req, res) => {
 
     await doc.save();
     res.json({ message: "Rating updated", document: doc });
-
   } catch (err) {
     console.error("Rating Error:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
@@ -199,35 +216,22 @@ export const deleteDocument = async (req, res) => {
   try {
     const docId = req.params.id;
     const doc = await Document.findById(docId);
+
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    // Enforce ownership: only contributor can delete
     if (!req.user || String(doc.contributor?.id) !== String(req.user.id)) {
-      return res.status(403).json({ message: "Forbidden: you can only delete your own document" });
+      return res.status(403).json({ message: "You can only delete your own document" });
     }
 
-    // Cloudinary delete
     if (process.env.USE_CLOUDINARY === "true" && doc.filePublicId) {
       await cloudinary.api.delete_resources([doc.filePublicId], {
         resource_type: "raw",
       });
     }
 
-    // Local delete (handles absolute or relative /uploads/ URLs)
-    else if (doc.fileUrl && doc.fileUrl.includes("/uploads/")) {
-      try {
-        const idx = doc.fileUrl.lastIndexOf("/uploads/");
-        const filename = doc.fileUrl.substring(idx + "/uploads/".length);
-        const filePath = path.join(process.cwd(), "uploads", filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      } catch (e) {
-        console.warn("Local file delete warning:", e.message || e);
-      }
-    }
-
     await Document.findByIdAndDelete(docId);
-    res.json({ message: "Document deleted" });
 
+    res.json({ message: "Document deleted successfully" });
   } catch (err) {
     console.error("Delete Error:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
@@ -235,50 +239,39 @@ export const deleteDocument = async (req, res) => {
 };
 
 /* -------------------------------------------------------
-   ✏️ UPDATE DOCUMENT (owner only)
+   ✏️ UPDATE DOCUMENT
 --------------------------------------------------------*/
 export const updateDocument = async (req, res) => {
   try {
     const docId = req.params.id;
     const doc = await Document.findById(docId);
+
     if (!doc) return res.status(404).json({ message: "Document not found" });
 
-    // Enforce ownership
     if (!req.user || String(doc.contributor?.id) !== String(req.user.id)) {
-      return res.status(403).json({ message: "Forbidden: you can only update your own document" });
+      return res.status(403).json({ message: "You can only update your own document" });
     }
 
-    const {
-      title,
-      description,
-      type,
-      subject,
-      course,
-      college,
-      semester,
-      year,
-    } = req.body;
+    const allowedFields = [
+      "title",
+      "description",
+      "type",
+      "subject",
+      "course",
+      "college",
+      "semester",
+      "year",
+      "session",
+    ];
 
-    // Validate type if provided
-    if (type && !["notes", "paper"].includes(type)) {
-      return res.status(400).json({ message: "Invalid type. Use 'notes' or 'paper'" });
-    }
-
-    // Apply updates (only provided fields)
-    if (typeof title !== "undefined") {
-      const trimmed = (title || "").trim();
-      doc.title = trimmed || doc.title;
-    }
-    if (typeof description !== "undefined") doc.description = description;
-    if (typeof type !== "undefined") doc.type = type;
-    if (typeof subject !== "undefined") doc.subject = subject;
-    if (typeof course !== "undefined") doc.course = course;
-    if (typeof college !== "undefined") doc.college = college;
-    if (typeof semester !== "undefined") doc.semester = semester;
-    if (typeof year !== "undefined") doc.year = year;
-    if (typeof req.body.session !== "undefined") doc.session = req.body.session;
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        doc[field] = req.body[field];
+      }
+    });
 
     await doc.save();
+
     res.json({ message: "Document updated", document: doc });
   } catch (err) {
     console.error("Update Error:", err);

@@ -19,8 +19,6 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-
-  // your deployed frontend
   "https://study-mantra-frontend.vercel.app",
 ];
 
@@ -28,11 +26,7 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
+      if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("CORS blocked: " + origin));
     },
     credentials: true,
@@ -41,21 +35,32 @@ app.use(
 );
 
 // --------------------- RATE LIMIT ---------------------
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 200,
-});
-app.use(limiter);
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 200,
+  })
+);
 
 // --------------------- BODY PARSER ---------------------
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // --------------------- STATIC FILES ---------------------
-const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
-
-app.use("/uploads", express.static(uploadsDir));
+// Only create /uploads locally (NOT on Vercel)
+if (!process.env.VERCEL) {
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir);
+    } catch (err) {
+      console.error("Error creating uploads folder:", err.message);
+    }
+  }
+  app.use("/uploads", express.static(uploadsDir));
+} else {
+  console.log("Production mode → Skipping local uploads folder");
+}
 
 // --------------------- ROUTES ---------------------
 app.use("/api/auth", authRoutes);
@@ -64,7 +69,7 @@ app.use("/api/ai", aiRoutes);
 
 // --------------------- DEFAULT ---------------------
 app.get("/", (req, res) => {
-  res.send("Backend running ✔");
+  res.send("Backend running ✔ Vercel mode=" + (process.env.VERCEL ? "true" : "false"));
 });
 
 // --------------------- EXPORT FOR VERCEL ---------------------

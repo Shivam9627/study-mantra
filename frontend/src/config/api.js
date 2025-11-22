@@ -1,1 +1,2 @@
-export const API_URL = import.meta.env.VITE_API_URL + "/api";
+const base = import.meta.env.VITE_API_URL.replace(/\/+$/, "");
+export const API_URL = `${base}/api`;

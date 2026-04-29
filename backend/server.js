@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import fs from "fs";
+import mongoose from "mongoose";
 
 import authRoutes from "./routes/authRoutes.js";
 import docRoutes from "./routes/docRoutes.js";
@@ -14,6 +15,34 @@ import adminRoutes from "./routes/adminRoutes.js";
 dotenv.config();
 
 const app = express();
+let dbConnectPromise = null;
+let dbWarmupPromise = null;
+
+async function ensureDbConnectionSafe() {
+  try {
+    await ensureDbConnection();
+  } catch (error) {
+    console.error("Initial Vercel DB warmup failed:", error.message || error);
+  }
+}
+
+const ensureDbConnection = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  if (!dbConnectPromise) {
+    dbConnectPromise = connectDB().finally(() => {
+      dbConnectPromise = null;
+    });
+  }
+
+  await dbConnectPromise;
+};
+
+if (process.env.VERCEL) {
+  dbWarmupPromise = ensureDbConnectionSafe();
+}
 
 // --------------------- CORS ---------------------
 const allowedOrigins = [
@@ -21,6 +50,7 @@ const allowedOrigins = [
   "http://127.0.0.1:5173",
   "https://study-mantra-frontend.vercel.app",
 ];
+app.set("trust proxy", 1);
 
 app.use(
   cors({
@@ -63,6 +93,21 @@ if (!process.env.VERCEL) {
 }
 
 // --------------------- ROUTES ---------------------
+if (process.env.VERCEL) {
+  app.use(async (req, res, next) => {
+    try {
+      if (dbWarmupPromise) {
+        await dbWarmupPromise;
+      }
+      await ensureDbConnection();
+      next();
+    } catch (error) {
+      console.error("Vercel DB init failed:", error.message || error);
+      res.status(500).json({ message: "Database connection failed" });
+    }
+  });
+}
+
 app.use("/api/auth", authRoutes);
 app.use("/api/docs", docRoutes);
 app.use("/api/ai", aiRoutes);

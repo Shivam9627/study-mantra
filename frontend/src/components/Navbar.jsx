@@ -31,7 +31,9 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const adminEmails = String(import.meta.env.VITE_ADMIN_EMAILS || "")
+  const adminEmails = String(
+    import.meta.env.VITE_ADMIN_EMAILS || import.meta.env.VITE_ADMIN_EMAIL || ""
+  )
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);

@@ -19,7 +19,7 @@ export default function AdminPanel() {
   const [warningText, setWarningText] = useState({});
 
   const adminEmails = useMemo(
-    () => splitEmails(import.meta.env.VITE_ADMIN_EMAILS),
+    () => splitEmails(import.meta.env.VITE_ADMIN_EMAILS || import.meta.env.VITE_ADMIN_EMAIL),
     []
   );
 

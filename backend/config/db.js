@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const defaultLocalUri = "mongodb://127.0.0.1:27017/studymantra";
+mongoose.set("bufferCommands", false);
 
 const normalizeMongoUri = (input) => {
   if (!input || typeof input !== "string") {
@@ -34,6 +35,7 @@ const connectDB = async () => {
 
   const options = {
     serverSelectionTimeoutMS: 10000,
+    dbName: "studymantra",
   };
 
   try {
@@ -68,6 +70,10 @@ const connectDB = async () => {
     console.error(
       "If Atlas DNS is blocked on your network, install/start local MongoDB or set MONGO_URI_LOCAL."
     );
+    if (process.env.VERCEL) {
+      throw error;
+    }
+
     process.exit(1);
   }
 };

@@ -1,7 +1,7 @@
 import React from "react";
 import { motion as Motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "../lib/auth.jsx";
 
 import notes from "../assets/notes.jpeg";
 import papers from "../assets/papers.jpeg";

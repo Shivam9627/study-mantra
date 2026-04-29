@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { SignedIn, SignedOut, useUser, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, useAuth } from "../lib/auth.jsx";
 import axios from "axios";
 
 export default function MyUploads() {

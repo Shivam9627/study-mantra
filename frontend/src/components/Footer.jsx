@@ -1,8 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { SignedIn } from "@clerk/clerk-react";
+import { SignedIn } from "../lib/auth.jsx";
 
 export default function Footer() {
+  const year = new Date().getFullYear();
+
   return (
     <footer className="mt-20 bg-gray-900 text-gray-300 py-10">
       <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-10 px-6">
@@ -45,12 +47,12 @@ export default function Footer() {
 
       {/* Copyright */}
       <p className="text-center text-gray-500 mt-10 text-sm">
-        © 2025 StudyMantra — All Rights Reserved.
+        © {year} StudyMantra — All Rights Reserved.
       </p>
 
       {/* Made With Love Line */}
       <p className="text-center text-gray-400 text-sm mt-2 tracking-wide">
-        Made with <span className="text-red-500">❤️</span> by <span className="font-semibold text-white">Shivam Chamoli</span>
+        Made with <span className="text-red-500">Love</span> by <span className="font-semibold text-white">Shivam Chamoli</span>
       </p>
     </footer>
   );

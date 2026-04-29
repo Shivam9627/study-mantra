@@ -1,4 +1,4 @@
-import { SignUp } from "@clerk/clerk-react";
+import { SignUp } from "../lib/auth.jsx";
 
 export default function Register() {
   return (

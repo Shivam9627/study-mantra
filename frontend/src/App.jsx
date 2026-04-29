@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MyUploads from "./pages/MyUploads";
 import AiChat from "./pages/AiChat";
+import AdminPanel from "./pages/AdminPanel";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/upload" element={<Upload />} />
         <Route path="/my-uploads" element={<MyUploads />} />
         <Route path="/chat" element={<AiChat />} />
+        <Route path="/admin" element={<AdminPanel />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>

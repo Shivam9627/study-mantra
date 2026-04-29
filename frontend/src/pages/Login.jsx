@@ -1,4 +1,4 @@
-import { SignIn } from "@clerk/clerk-react";
+import { SignIn } from "../lib/auth.jsx";
 
 export default function Login() {
   return (

@@ -7,7 +7,8 @@ import {
   SignedOut,
   SignInButton,
   UserButton,
-} from "@clerk/clerk-react";
+  useUser,
+} from "../lib/auth.jsx";
 
 import logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchType, setSearchType] = useState("notes");
   const [searchText, setSearchText] = useState("");
+  const { user } = useUser();
   const navigate = useNavigate();
 
   // Scroll detection
@@ -28,6 +30,17 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const adminEmails = String(import.meta.env.VITE_ADMIN_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  const isAdmin = Boolean(
+    user &&
+      (user.publicMetadata?.isAdmin ||
+        adminEmails.includes(user.primaryEmailAddress?.emailAddress?.toLowerCase()))
+  );
 
   return (
     <Motion.nav
@@ -113,6 +126,18 @@ export default function Navbar() {
             >
               My Uploads
             </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`transition-colors duration-300 ${
+                  isScrolled
+                    ? "text-gray-800 hover:text-indigo-600"
+                    : "text-white hover:text-indigo-300"
+                }`}
+              >
+                Admin
+              </Link>
+            )}
           </SignedIn>
 
           <Search
@@ -176,6 +201,9 @@ export default function Navbar() {
           <SignedIn>
             <Link to="/upload" onClick={() => setOpen(false)} className="block px-3 py-2 rounded-md hover:bg-gray-100">Upload</Link>
             <Link to="/my-uploads" onClick={() => setOpen(false)} className="block px-3 py-2 rounded-md hover:bg-gray-100">My Uploads</Link>
+            {isAdmin && (
+              <Link to="/admin" onClick={() => setOpen(false)} className="block px-3 py-2 rounded-md hover:bg-gray-100">Admin</Link>
+            )}
           </SignedIn>
 
           <SignedOut>

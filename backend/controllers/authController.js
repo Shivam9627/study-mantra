@@ -29,7 +29,24 @@ export const verifyUser = async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    return res.json({ user: req.user });
+
+    const dbUser = await User.findOneAndUpdate(
+      { clerkId: req.user.id },
+      {
+        name: req.user.name,
+        email: req.user.email,
+        clerkId: req.user.id,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    return res.json({
+      user: {
+        ...req.user,
+        warnings: dbUser.warnings || [],
+        isAdmin: dbUser.isAdmin || false,
+      },
+    });
   } catch (err) {
     console.error("verifyUser error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });

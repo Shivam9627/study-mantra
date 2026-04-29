@@ -9,9 +9,9 @@ import fs from "fs";
 import authRoutes from "./routes/authRoutes.js";
 import docRoutes from "./routes/docRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
@@ -66,6 +66,7 @@ if (!process.env.VERCEL) {
 app.use("/api/auth", authRoutes);
 app.use("/api/docs", docRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/admin", adminRoutes);
 
 // --------------------- DEFAULT ---------------------
 app.get("/", (req, res) => {
@@ -78,7 +79,15 @@ export default app;
 // --------------------- LOCAL RUN ONLY ---------------------
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () =>
-    console.log(`Local server running → http://localhost:${PORT}`)
-  );
+  const startServer = async () => {
+    await connectDB();
+    app.listen(PORT, () =>
+      console.log(`Local server running → http://localhost:${PORT}`)
+    );
+  };
+
+  startServer().catch((err) => {
+    console.error("Server failed to start:", err);
+    process.exit(1);
+  });
 }

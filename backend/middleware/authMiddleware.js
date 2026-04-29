@@ -2,6 +2,25 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+const hasUsableClerkSecret = () => {
+  const secret = (process.env.CLERK_SECRET_KEY || "").trim();
+
+  if (!secret) {
+    return false;
+  }
+
+  const normalized = secret.toLowerCase();
+  if (
+    normalized === "your_clerk_secret_key" ||
+    normalized === "replace_me" ||
+    normalized === "changeme"
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
 /**
  * requireAuth:
  * - If CLERK_SECRET_KEY present -> attempts to verify via @clerk/backend
@@ -18,7 +37,7 @@ export const requireAuth = async (req, res, next) => {
     let clerkAuthenticated = false;
 
     // If Clerk secret is set, try to verify the request using @clerk/backend
-    if (process.env.CLERK_SECRET_KEY) {
+    if (hasUsableClerkSecret()) {
       try {
         const { createClerkClient } = await import("@clerk/backend");
         const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
@@ -87,8 +106,15 @@ export const requireAdmin = (req, res, next) => {
     const user = req.user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
 
+    const adminEmails = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+
     // Clerk public metadata admin flag
     if (user.publicMetadata && user.publicMetadata.isAdmin) return next();
+
+    if (user.email && adminEmails.includes(user.email.toLowerCase())) return next();
 
     const adminHeader = (req.header("x-user-admin") || "").toLowerCase();
     if (adminHeader === "true") return next();
